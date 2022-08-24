@@ -1,14 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-#
-
 import random
+
 import numpy as np
 import pandas as pd
 import torch
+
 import arguments
 import models.data_utils.data_utils as data_utils
 import models.model_utils as model_utils

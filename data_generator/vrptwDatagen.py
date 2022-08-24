@@ -1,9 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-#
 import argparse
 import json
 import os
@@ -12,6 +6,7 @@ from operator import itemgetter
 
 import numpy as np
 from scipy.spatial import distance_matrix
+from tqdm import tqdm
 
 argParser = argparse.ArgumentParser()
 argParser.add_argument('--res_file', type=str, default='vrptw_20_30.json')
@@ -24,8 +19,8 @@ argParser.add_argument('--num_customers', type=int, default=20)
 argParser.add_argument('--max_demand', type=int, default=9)
 argParser.add_argument('--position_range', type=float, default=1.0)
 argParser.add_argument('--capacity', type=int, default=30, choices=[20, 30, 40, 50])
-argParser.add_argument('--min_window_width', type=int, default=1)
-argParser.add_argument('--mean_window_width', type=int, default=4)
+argParser.add_argument('--min_window_width', type=int, default=0.25)
+argParser.add_argument('--mean_window_width', type=int, default=1)
 
 args = argParser.parse_args()
 
@@ -62,8 +57,8 @@ class Vrp():
                     self.savings.append([i, j, saving])                                          # 将结果以元组形式存放在列表中
 
         self.savings = sorted(self.savings, key=itemgetter(2), reverse=True)                     # 按照节约度从大到小进行排序
-        for i in range(len(self.savings)):
-            print(self.savings[i][0],'--',self.savings[i][1], "  ",self.savings[i][2])           # 打印节约度
+        # for i in range(len(self.savings)):
+            # print(self.savings[i][0],'--',self.savings[i][1], "  ",self.savings[i][2])           # 打印节约度
 
         for i in range(len(self.savings)):
             startRoute = []
@@ -129,7 +124,8 @@ class Vrp():
         self.savingsAlgorithms()          # 函数调用计算节省量并生成路线
         # print("== == == == == == == == == == == == == == == 结果 == == == == == == == = == == == == == == == =")
         # self.printRoutes()
-        self.calcCosts()
+        # self.calcCosts()
+        return self.Routes
 
 
 def generate_time_window(routes, dm):
@@ -146,7 +142,7 @@ def generate_time_window(routes, dm):
 def main():
     np.random.seed(args.seed)
     samples = []
-    for _ in range(args.num_samples):
+    for _ in tqdm(range(args.num_samples)):
         cur_sample = {}
         cur_sample['customers'] = []
         cur_sample['capacity'] = args.capacity
@@ -156,15 +152,14 @@ def main():
             cx, cy = sample_pos()
             demand = np.random.randint(1, args.max_demand + 1)
             cur_sample['customers'].append({'position': (cx, cy), 'demand': demand})
-        cw_solution = cw_solver.start(cur_sample)
         
-        node_positions = [[0.0, 0.0]] + [customer["position"] for customer in cur_sample['customers']]
+        node_positions = [[cur_sample['depot'][0], cur_sample['depot'][1]]] + [customer["position"] for customer in cur_sample['customers']]
         dm = distance_matrix(node_positions, node_positions)
         cw_solver = Vrp(20, 30, dm, [0] + [customer["demand"] for customer in cur_sample['customers']])
         routes = cw_solver.start()
         time_windows = generate_time_window(routes, dm)
-        for i in range(len(time_windows)):
-            cur_sample['customers']["time_window"] = time_windows[i]
+        for i in range(len(time_windows)-1):
+            cur_sample['customers'][i]["time_window"] = time_windows[i+1]
 
         samples.append(cur_sample)
 

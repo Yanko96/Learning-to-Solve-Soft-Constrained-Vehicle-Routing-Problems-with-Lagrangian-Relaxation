@@ -1,29 +1,22 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-#
-
-import numpy as np
 import operator
 import random
 import time
 from multiprocessing.pool import ThreadPool
 
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch import cuda
 from torch.autograd import Variable
-from torch.nn.utils import clip_grad_norm
-import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
+from torch.nn.utils import clip_grad_norm
 
-from .data_utils import data_utils
-from .modules import vrpInputEncoder, mlp
-from .rewriter import vrpRewriter
 from .BaseModel import BaseModel
+from .data_utils import data_utils
+from .modules import mlp, vrpInputEncoder
+from .rewriter import vrpRewriter
 
 eps = 1e-3
 log_eps = np.log(eps)
@@ -285,5 +278,3 @@ class vrpModel(BaseModel):
 		total_reward = total_reward * 1.0 / batch_size
 
 		return total_loss, total_reward, dm_rec
-
-

@@ -1,14 +1,9 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-#
-import os
-import sys
-import numpy as np
 import argparse
 import json
+import os
+import sys
+
+import numpy as np
 
 argParser = argparse.ArgumentParser()
 argParser.add_argument('--res_file', type=str, default='vrp_20_30.json')
