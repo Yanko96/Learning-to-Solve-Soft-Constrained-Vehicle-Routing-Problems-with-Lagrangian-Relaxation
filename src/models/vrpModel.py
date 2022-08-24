@@ -172,7 +172,7 @@ class vrpModel(BaseModel):
 		batch_size = len(batch_data)
 		for dm in batch_data:
 			dm_list.append(dm)
-		dm_list = self.input_encoder.calc_embedding(dm_list, eval_flag)
+		dm_list, encoder_output = self.input_encoder.calc_embedding(dm_list, eval_flag)
 
 		active = True
 		reduce_steps = 0
@@ -226,7 +226,7 @@ class vrpModel(BaseModel):
 			if not active:
 				break
 
-			updated_dm = self.input_encoder.calc_embedding(dm_list, eval_flag)
+			updated_dm, updated_encoder_output = self.input_encoder.calc_embedding(dm_list, eval_flag)
 			for i in range(batch_size):
 				if updated_dm[i].tot_dis[-1] != dm_rec[i][-1].tot_dis[-1]:
 					dm_rec[i].append(updated_dm[i])

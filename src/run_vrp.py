@@ -32,14 +32,14 @@ def create_model(args):
 def train(args):
 	print('Training:')
 
-	train_data = data_utils.load_dataset(args.train_dataset, args)
+	train_data = data_utils.load_dataset(args.train_dataset)
 	train_data_size = len(train_data)
 	if args.train_proportion < 1.0:
 		random.shuffle(train_data)
 		train_data_size = int(train_data_size * args.train_proportion)
 		train_data = train_data[:train_data_size]
 
-	eval_data = data_utils.load_dataset(args.val_dataset, args)
+	eval_data = data_utils.load_dataset(args.val_dataset)
 
 	DataProcessor = data_utils.vrpDataProcessor()
 	model_supervisor = create_model(args)
