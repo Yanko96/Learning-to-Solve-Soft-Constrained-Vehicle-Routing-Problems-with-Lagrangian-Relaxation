@@ -7,9 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import cuda
-from torch.autograd import Variable
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 
 
 class BaseModel(nn.Module):
@@ -53,5 +51,5 @@ class BaseModel(nn.Module):
 
 	def train(self):
 		if self.gradient_clip > 0:
-			clip_grad_norm(self.parameters(), self.gradient_clip)
+			clip_grad_norm_(self.parameters(), self.gradient_clip)
 		self.optimizer.step()

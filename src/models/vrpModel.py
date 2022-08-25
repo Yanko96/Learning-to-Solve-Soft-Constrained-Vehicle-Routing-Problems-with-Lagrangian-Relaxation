@@ -255,11 +255,11 @@ class vrpModel(BaseModel):
 						cur_reward = max(decay_coef * (pred_dis[idx] - pred_dis[i]), cur_reward)
 						decay_coef *= self.gamma
 
-				cur_reward_tensor = data_utils.np_to_tensor(np.array([cur_reward], dtype=np.float32), 'float', self.cuda_flag, volatile_flag=True)
+				cur_reward_tensor = data_utils.np_to_tensor(np.array([cur_reward], dtype=np.float32), 'float', self.cuda_flag)
 				if ac_logprob.data.cpu().numpy()[0] > log_eps or cur_reward - pred_reward > 0:
 					ac_mask = np.zeros(ac_logprob.size()[0])
 					ac_mask[applied_op] = cur_reward - pred_reward
-					ac_mask = data_utils.np_to_tensor(ac_mask, 'float', self.cuda_flag, eval_flag)
+					ac_mask = data_utils.np_to_tensor(ac_mask, 'float', self.cuda_flag)
 					total_policy_loss -= ac_logprob[applied_op] * ac_mask[applied_op]
 				pred_value_rec.append(cur_pred_reward_tensor)
 				value_target_rec.append(cur_reward_tensor)
@@ -271,7 +271,7 @@ class vrpModel(BaseModel):
 			value_target_rec = torch.cat(value_target_rec, 0)
 			pred_value_rec = pred_value_rec.unsqueeze(1)
 			value_target_rec = value_target_rec.unsqueeze(1)
-			total_value_loss = F.smooth_l1_loss(pred_value_rec, value_target_rec, size_average=False)
+			total_value_loss = F.smooth_l1_loss(pred_value_rec, value_target_rec, reduction='sum')
 		total_policy_loss /= batch_size
 		total_value_loss /= batch_size
 		total_loss = total_policy_loss * self.value_loss_coef + total_value_loss

@@ -65,7 +65,7 @@ def get_arg_parser(title):
 		data_group.add_argument('--lr', type=float, default=5e-5)
 		data_group.add_argument('--value_loss_coef', type=float, default=0.01)
 		data_group.add_argument('--gamma', type=float, default=0.9)
-		data_group.add_argument('--batch_size', type=int, default=64)
+		data_group.add_argument('--batch_size', type=int, default=8)
 		data_group.add_argument('--num_MLP_layers', type=int, default=2)
 		data_group.add_argument('--embedding_size', type=int, default=7)
 		data_group.add_argument('--attention_size', type=int, default=16)

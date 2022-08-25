@@ -57,7 +57,8 @@ class vrpModel(BaseModel):
         candidate_scores = []
 
         for idx, rewrite_pos in enumerate(sample_rewrite_pos):
-            pred_reward = padded_predicted_rewards[0, rewrite_pos]
+            pred_reward = padded_predicted_rewards[rewrite_pos]
+            rewrite_pos += 1
             if len(candidate_dm) > 0 and idx >= max_search_pos:
                 break
             if reward_thres is not None and pred_reward < reward_thres:
@@ -106,8 +107,8 @@ class vrpModel(BaseModel):
             ctx_embeddings = self.policy_embedding(policy_inputs)
             cur_state_key = self.policy(torch.cat([cur_state, depot_state], dim=1))
             ac_logits = torch.matmul(cur_state_key, torch.transpose(ctx_embeddings, 0, 1)) / 64
-            ac_logprobs = nn.LogSoftmax()(ac_logits)
-            ac_probs = nn.Softmax()(ac_logits)
+            ac_logprobs = F.log_softmax(ac_logits, dim=1)
+            ac_probs = F.softmax(ac_logits, dim=1)
             ac_logits = ac_logits.squeeze(0)
             ac_logprobs = ac_logprobs.squeeze(0)
             ac_probs = ac_probs.squeeze(0)
@@ -152,7 +153,7 @@ class vrpModel(BaseModel):
             
         for i in range(len(dm_list)):
             sample_rewrite_pos = torch.unique(batch_rewrite_pos[i], sorted=False).flip(dims=[0])
-            cur_candidate_dm, cur_candidate_rewrite_rec = self.rewrite(dm_list[i], trace_rec[i], padded_predicted_rewards, sample_rewrite_pos, eval_flag, max_search_pos, reward_thres)
+            cur_candidate_dm, cur_candidate_rewrite_rec = self.rewrite(dm_list[i], trace_rec[i], padded_predicted_rewards[i], sample_rewrite_pos, eval_flag, max_search_pos, reward_thres)
             candidate_dm.append(cur_candidate_dm)
             candidate_rewrite_rec.append(cur_candidate_rewrite_rec)
         return candidate_dm, candidate_rewrite_rec
@@ -162,7 +163,7 @@ class vrpModel(BaseModel):
         eval_flag = False
         torch.set_grad_enabled(not eval_flag)
         batch_size = len(batch_data)
-        dm_list, encoder_output = self.encoder.calc_embedding(batch_data, eval_flag)
+        dm_list, encoder_output = self.input_encoder.calc_embedding(batch_data, eval_flag)
 
         active = True
         reduce_steps = 0
@@ -200,7 +201,7 @@ class vrpModel(BaseModel):
             if not active:
                 break
 
-            updated_dm = self.input_encoder.calc_embedding(dm_list, eval_flag)
+            updated_dm, encoder_output = self.input_encoder.calc_embedding(dm_list, eval_flag)
             for i in range(batch_size):
                 if updated_dm[i].tot_dis[-1] != dm_rec[i][-1].tot_dis[-1]:
                     dm_rec[i].append(updated_dm[i])
@@ -217,8 +218,8 @@ class vrpModel(BaseModel):
             for dm in cur_dm_rec:
                 pred_dis.append(dm.tot_dis[-1])
             best_reward = pred_dis[0]
-            
-            for idx, (ac_logprob, pred_reward, cur_pred_reward_tensor, rewrite_pos, applied_op, new_dis) in enumerate(rewrite_rec[dm_idx]):
+
+            for idx, (ac_logprob, pred_reward, rewrite_pos, applied_op, new_dis) in enumerate(rewrite_rec[dm_idx]):
                 cur_reward = pred_dis[idx] - pred_dis[idx + 1]
                 best_reward = min(best_reward, pred_dis[idx + 1])
 
@@ -229,23 +230,23 @@ class vrpModel(BaseModel):
                         cur_reward = max(decay_coef * (pred_dis[idx] - pred_dis[i]), cur_reward)
                         decay_coef *= self.gamma
 
-                cur_reward_tensor = data_utils.np_to_tensor(np.array([cur_reward], dtype=np.float32), 'float', self.cuda_flag, volatile_flag=True)
+                cur_reward_tensor = data_utils.np_to_tensor(np.array([cur_reward], dtype=np.float32), 'float', self.cuda_flag)
                 if ac_logprob.data.cpu().numpy()[0] > log_eps or cur_reward - pred_reward > 0:
                     ac_mask = np.zeros(ac_logprob.size()[0])
                     ac_mask[applied_op] = cur_reward - pred_reward
-                    ac_mask = data_utils.np_to_tensor(ac_mask, 'float', self.cuda_flag, eval_flag)
+                    ac_mask = data_utils.np_to_tensor(ac_mask, 'float', self.cuda_flag)
                     total_policy_loss -= ac_logprob[applied_op] * ac_mask[applied_op]
-                pred_value_rec.append(cur_pred_reward_tensor)
+                pred_value_rec.append(pred_reward)
                 value_target_rec.append(cur_reward_tensor)
             
             total_reward += best_reward
 
         if len(pred_value_rec) > 0:
-            pred_value_rec = torch.cat(pred_value_rec, 0)
+            pred_value_rec = torch.stack(pred_value_rec, 0)
             value_target_rec = torch.cat(value_target_rec, 0)
             pred_value_rec = pred_value_rec.unsqueeze(1)
             value_target_rec = value_target_rec.unsqueeze(1)
-            total_value_loss = F.smooth_l1_loss(pred_value_rec, value_target_rec, size_average=False)
+            total_value_loss = F.smooth_l1_loss(pred_value_rec, value_target_rec, reduction='sum')
         total_policy_loss /= batch_size
         total_value_loss /= batch_size
         total_loss = total_policy_loss * self.value_loss_coef + total_value_loss

@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+from statistics import mean
 import sys
 import time
 
@@ -152,7 +153,8 @@ class vrptwSupervisor(Supervisor):
         if type(avg_loss) != float:
             avg_loss.backward()
             self.model.train()
-        return avg_loss.item(), avg_reward
+        avg_dist = np.mean([np.min([dm.tot_dis[-1] for dm in dm_rec[i]]) for i in range(len(dm_rec))])
+        return avg_loss.item(), avg_reward, avg_dist
 
 
     def batch_eval(self, eval_data, output_trace_flag, process_idx):
