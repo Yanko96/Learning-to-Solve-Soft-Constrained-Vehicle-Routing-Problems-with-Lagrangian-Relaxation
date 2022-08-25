@@ -148,7 +148,7 @@ class vrpModel(BaseModel):
         padded_predicted_rewards = pad_sequence(padded_predicted_rewards, batch_first=True, padding_value=-float('inf')).squeeze()
         exp_padded_predicted_rewards = torch.exp(padded_predicted_rewards * 10)
         batch_rewrite_pos_dist = Categorical(exp_padded_predicted_rewards.squeeze())
-        batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[max(lengths)])
+        batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[self.num_sample_rewrite_pos])
         batch_rewrite_pos = batch_rewrite_pos.permute(1, 0)
             
         for i in range(len(dm_list)):
