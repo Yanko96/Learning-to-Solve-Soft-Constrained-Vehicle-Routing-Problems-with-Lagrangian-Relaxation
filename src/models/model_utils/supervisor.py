@@ -140,76 +140,39 @@ class vrptwSupervisor(Supervisor):
     """
     Management class for vehicle routing.
     """
-    def __init__(self, model, args, dataloader):
+    def __init__(self, model, args):
         super(vrptwSupervisor, self).__init__(model, args)
-        self.dataloader = dataloader
 
 
     def train(self, batch_data):
         self.model.dropout_rate = self.dropout_rate
         self.model.optimizer.zero_grad()
-        avg_loss, avg_reward, dm_rec = self.model(batch_data)
+        avg_loss, (avg_cost, avg_dist, avg_penalty), dm_rec = self.model(batch_data)
         self.global_step += 1
         if type(avg_loss) != float:
             avg_loss.backward()
             self.model.train()
-        avg_dist = np.mean([np.min([dm.tot_dis[-1] for dm in dm_rec[i]]) for i in range(len(dm_rec))])
-        return avg_loss.item(), avg_reward, avg_dist
+        return avg_loss.item(), (avg_cost, avg_dist, avg_penalty)
 
 
-    def batch_eval(self, eval_data, output_trace_flag, process_idx):
+    def eval(self, dataloader):
+        data_size = 0
         cum_loss = 0
-        cum_reward = 0
-        data_size = len(eval_data)
-
-        for batch_idx in range(0, data_size, self.batch_size):
-            batch_data = self.DataProcessor.get_batch(eval_data, self.batch_size, batch_idx)
-            cur_avg_loss, cur_avg_reward, dm_rec = self.model(batch_data, eval_flag=True)
-            cum_loss += cur_avg_loss.item() * len(batch_data)
-            cum_reward += cur_avg_reward * len(batch_data)
-            if output_trace_flag == 'complete':
-                for cur_dm_rec in dm_rec:
-                    for i in range(len(cur_dm_rec)):
-                        print('step ' + str(i))
-                        dm = cur_dm_rec[i]
-                        print(dm.tot_dis[-1])
-                        for j in range(len(dm.vehicle_state)):
-                            cur_pos, cur_capacity = dm.vehicle_state[j]
-                            cur_node = dm.get_node(cur_pos)
-                            print(cur_node.x, cur_node.y, cur_node.demand, cur_capacity, dm.tot_dis[j])
-                        print('')
-            print('process start idx: %d batch idx: %d pred reward: %.4f' \
-                % (process_idx, batch_idx, cur_avg_reward))
-        return cum_loss, cum_reward
-
-
-    def eval(self, data, output_trace_flag, max_eval_size=None):
-        data_size = len(data)
-        if max_eval_size is not None:
-            data_size = min(data_size, max_eval_size)
-        eval_data = data[:data_size]
-        if self.processes == 1:
-            cum_loss, cum_reward = self.batch_eval(eval_data, output_trace_flag, 0)
-        else:
-            cum_loss = 0
-            cum_reward = 0
-            try:
-                mp.set_start_method('spawn')
-            except RuntimeError:
-                pass
-            pool = mp.Pool(processes=self.processes)
-            res = []
-            batch_per_process = data_size // self.processes
-            if data_size % batch_per_process > 0:
-                batch_per_process += 1
-            for st in range(0, data_size, batch_per_process):
-                res += [pool.apply_async(self.batch_eval, (eval_data[st: st + batch_per_process], output_trace_flag, st))]
-            for i in range(len(res)):
-                cur_cum_loss, cur_cum_reward = res[i].get()
-                cum_loss += cur_cum_loss
-                cum_reward += cur_cum_reward
-
+        cum_cost = 0
+        cum_dist = 0
+        cum_penalty = 0
+        for batch_idx, samples in enumerate(dataloader):
+            print("Evaluating, Batch {}".format(batch_idx))
+            eval_loss, (avg_cost, avg_dist, avg_penalty) = self.model(samples, eval_flag=True)
+            print('Valiation loss: %.4f avg cost: %.4f avg distance: %.4f avg penalty: %.4f' % (eval_loss, avg_cost, avg_dist, avg_penalty))
+            data_size += len(samples)
+            cum_loss += eval_loss.item() * len(samples)
+            cum_cost += avg_cost * len(samples)
+            cum_dist += avg_dist * len(samples)
+            cum_penalty += avg_penalty * len(samples)
         avg_loss = cum_loss / data_size
-        avg_reward = cum_reward / data_size
-        print('average pred reward: %.4f' % avg_reward)
-        return avg_loss, avg_reward
+        avg_cost = cum_cost / data_size
+        avg_dist = cum_dist / data_size
+        avg_penalty = cum_penalty / data_size
+        print('average cost: %.4f average distance: %.4f average penalty: %.4f' % (avg_cost, avg_dist, avg_penalty))
+        return avg_loss, (avg_cost, avg_dist, avg_penalty)

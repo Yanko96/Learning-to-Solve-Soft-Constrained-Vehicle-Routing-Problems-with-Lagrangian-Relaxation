@@ -212,3 +212,18 @@ class VrptwManager(SeqManager):
             else:
                 self.routes[-1].append(state[0])
         self.routes = self.routes[:-1]
+
+
+    def get_penalty(self):
+        total_penalty = 0.0
+        for route in self.routes:
+            cur_time = 0.0
+            for i in range(len(route)-2):
+                cur_time += self.get_dis(self.nodes[route[i]], self.nodes[route[i+1]])
+                node = self.nodes[route[i+1]]
+                if cur_time > node.tw_end:
+                    total_penalty += cur_time - node.tw_end
+                elif cur_time < node.tw_start:
+                    total_penalty += node.tw_start - cur_time
+        return total_penalty
+

@@ -3,15 +3,16 @@ import random
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import DataLoader, Dataset
 
 import arguments
 import models.data_utils.data_utils as data_utils
 import models.model_utils as model_utils
-from models.vrpModelRefactored import vrpModel
+from models.vrptwModel import vrptwModel
 
 
 def create_model(args):
-    model = vrpModel(args)
+    model = vrptwModel(args)
 
     if model.cuda_flag:
         model = model.cuda()
@@ -31,23 +32,16 @@ def create_model(args):
 
 def train(args):
     print('Training:')
+    train_data = data_utils.vrptwDataset(args.train_dataset, True)
+    train_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
 
-    train_data = data_utils.load_dataset(args.train_dataset)
     train_data_size = len(train_data)
-    if args.train_proportion < 1.0:
-        random.shuffle(train_data)
-        train_data_size = int(train_data_size * args.train_proportion)
-        train_data = train_data[:train_data_size]
 
-    eval_data = data_utils.load_dataset(args.val_dataset)
+    eval_data = data_utils.vrptwDataset(args.val_dataset, True)
+    eval_dataloader = DataLoader(train_data, batch_size=args.eval_size, shuffle=False)
 
-    DataProcessor = data_utils.vrpDataProcessor()
     model_supervisor = create_model(args)
 
-    if args.resume:
-        resume_step = True
-    else:
-        resume_step = False
     resume_idx = args.resume * args.batch_size
 
     logger = model_utils.Logger(args)
@@ -58,17 +52,14 @@ def train(args):
             logger.write_summary(val_summary)
 
     for epoch in range(resume_idx//train_data_size, args.num_epochs):
-        random.shuffle(train_data)
-        for batch_idx in range(0+resume_step*resume_idx%train_data_size, train_data_size, args.batch_size):
-            resume_step = False
+        for batch_idx, samples in enumerate(train_dataloader):
             print("Epoch {}, Batch {}".format(epoch, batch_idx))
-            batch_data = DataProcessor.get_batch(train_data, args.batch_size, batch_idx)
-            train_loss, train_reward = model_supervisor.train(batch_data)
-            print('train loss: %.4f avg distance: %.4f' % (train_loss, train_reward))
+            train_loss, (avg_cost, avg_dist, avg_penalty) = model_supervisor.train(samples)
+            print('train loss: %.4f avg cost: %.4f avg distance: %.4f avg penalty: %.4f' % (train_loss, avg_cost, avg_dist, avg_penalty))
 
             if model_supervisor.global_step % args.eval_every_n == 0:
-                eval_loss, eval_reward = model_supervisor.eval(eval_data, args.output_trace_flag, args.max_eval_size)
-                val_summary = {'avg_reward': eval_reward, 'global_step': model_supervisor.global_step}
+                eval_loss, (eval_avg_cost, eval_avg_dist, eval_avg_penalty) = model_supervisor.eval(eval_dataloader, args.output_trace_flag, args.max_eval_size)
+                val_summary = {'avg_cost': eval_avg_cost, 'eval_avg_dist': eval_avg_dist, 'eval_avg_penalty': eval_avg_penalty, 'global_step': model_supervisor.global_step}
                 logger.write_summary(val_summary)
                 model_supervisor.save_model()
 
@@ -81,16 +72,16 @@ def train(args):
 def evaluate(args):
     print('Evaluation:')
 
-    test_data = data_utils.load_dataset(args.test_dataset, args)
+    test_data = data_utils.vrptwDataset(args.test_dataset, True)
+    test_dataloader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
     test_data_size = len(test_data)
     args.dropout_rate = 0.0
 
-    dataProcessor = data_utils.vrpDataProcessor()
     model_supervisor = create_model(args)
-    test_loss, test_reward = model_supervisor.eval(test_data, args.output_trace_flag)
+    test_loss, (test_avg_cost, test_avg_dist, test_avg_penalty) = model_supervisor.eval(test_dataloader, args.output_trace_flag)
 
 
-    print('test loss: %.4f test reward: %.4f' % (test_loss, test_reward))
+    print('test loss: %.4f test cost: %.4f test distance: %.4f test penalty: %.4f' % (test_loss, test_avg_cost, test_avg_dist, test_avg_penalty))
 
 
 if __name__ == "__main__":
