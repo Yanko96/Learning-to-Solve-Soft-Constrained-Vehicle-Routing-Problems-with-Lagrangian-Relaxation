@@ -147,12 +147,18 @@ class vrpModel(BaseModel):
             start_idx += length
         padded_predicted_rewards = pad_sequence(padded_predicted_rewards, batch_first=True, padding_value=-float('inf')).squeeze()
         exp_padded_predicted_rewards = torch.exp(padded_predicted_rewards * 10)
-        batch_rewrite_pos_dist = Categorical(exp_padded_predicted_rewards.squeeze())
-        batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[self.num_sample_rewrite_pos])
-        batch_rewrite_pos = batch_rewrite_pos.permute(1, 0)
+        if eval_flag:
+            batch_rewrite_pos = torch.sort(exp_padded_predicted_rewards, dim=1, descending=True)[1]
+        else:
+            batch_rewrite_pos_dist = Categorical(exp_padded_predicted_rewards.squeeze())
+            batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[self.num_sample_rewrite_pos])
+            batch_rewrite_pos = batch_rewrite_pos.permute(1, 0)
             
         for i in range(len(dm_list)):
-            sample_rewrite_pos = torch.unique(batch_rewrite_pos[i], sorted=False).flip(dims=[0])
+            if not eval_flag:
+                sample_rewrite_pos = torch.unique(batch_rewrite_pos[i], sorted=False).flip(dims=[0])
+            else:
+                sample_rewrite_pos = batch_rewrite_pos[i]
             cur_candidate_dm, cur_candidate_rewrite_rec = self.rewrite(dm_list[i], trace_rec[i], padded_predicted_rewards[i], sample_rewrite_pos, eval_flag, max_search_pos, reward_thres)
             candidate_dm.append(cur_candidate_dm)
             candidate_rewrite_rec.append(cur_candidate_rewrite_rec)

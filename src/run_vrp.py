@@ -8,6 +8,7 @@ import arguments
 import models.data_utils.data_utils as data_utils
 import models.model_utils as model_utils
 from models.vrpModelRefactored import vrpModel
+# from models.vrpModel import vrpModel
 
 
 def create_model(args):
@@ -97,8 +98,10 @@ if __name__ == "__main__":
     argParser = arguments.get_arg_parser("vrp")
     args = argParser.parse_args()
     args.cuda = not args.cpu and torch.cuda.is_available()
-    random.seed(args.seed)
-    np.random.seed(args.seed)
+    if args.seed:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
     if args.eval:
         evaluate(args)
     else:
