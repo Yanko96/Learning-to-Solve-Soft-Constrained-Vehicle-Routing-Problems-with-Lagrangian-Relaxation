@@ -58,6 +58,8 @@ def train(args):
             val_summary = {'avg_reward': log['avg_reward'], 'global_step': log['global_step']}
             logger.write_summary(val_summary)
 
+    running_mean_dist = 0.0
+
     for epoch in range(resume_idx//train_data_size, args.num_epochs):
         random.shuffle(train_data)
         for batch_idx in range(0+resume_step*resume_idx%train_data_size, train_data_size, args.batch_size):
@@ -65,7 +67,8 @@ def train(args):
             print("Epoch {}, Batch {}".format(epoch, batch_idx))
             batch_data = DataProcessor.get_batch(train_data, args.batch_size, batch_idx)
             train_loss, train_reward = model_supervisor.train(batch_data)
-            print('train loss: %.4f avg distance: %.4f' % (train_loss, train_reward))
+            running_mean_dist = running_mean_dist * 0.95 + train_reward * 0.05
+            print('train loss: %.4f avg distance: %.4f running mean distance: %.4f' % (train_loss, train_reward, running_mean_dist))
 
             if model_supervisor.global_step % args.eval_every_n == 0:
                 eval_loss, eval_reward = model_supervisor.eval(eval_data, args.output_trace_flag, args.max_eval_size)

@@ -50,14 +50,14 @@ class vrpModel(BaseModel):
             raise ValueError('optimizer undefined: ', args.optimizer)
 
 
-    def rewrite(self, dm, trace_rec, padded_predicted_rewards, sample_rewrite_pos, eval_flag, max_search_pos, reward_thres=None):
+    def rewrite(self, dm, trace_rec, predicted_rewards, sample_rewrite_pos, eval_flag, max_search_pos, reward_thres=None):
         candidate_dm = []
         candidate_rewrite_rec = []
         candidate_trace_rec = []
         candidate_scores = []
 
         for idx, rewrite_pos in enumerate(sample_rewrite_pos):
-            pred_reward = padded_predicted_rewards[rewrite_pos]
+            pred_reward = predicted_rewards[rewrite_pos]
             rewrite_pos += 1
             if len(candidate_dm) > 0 and idx >= max_search_pos:
                 break
@@ -141,32 +141,33 @@ class vrpModel(BaseModel):
         lengths = [len(dm.vehicle_state)-2 for dm in dm_list]
         
         start_idx = 0
-        padded_predicted_rewards = []
+        batch_predicted_rewards = []
         for length in lengths:
-            padded_predicted_rewards.append(pred_rewards[start_idx:start_idx+length])
+            batch_predicted_rewards.append(pred_rewards[start_idx:start_idx+length])
             start_idx += length
-        padded_predicted_rewards = pad_sequence(padded_predicted_rewards, batch_first=True, padding_value=-float('inf')).squeeze()
-        exp_padded_predicted_rewards = torch.exp(padded_predicted_rewards * 10)
-        if eval_flag:
-            batch_rewrite_pos = torch.sort(exp_padded_predicted_rewards, dim=1, descending=True)[1]
-        else:
-            batch_rewrite_pos_dist = Categorical(exp_padded_predicted_rewards.squeeze())
-            batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[self.num_sample_rewrite_pos])
-            batch_rewrite_pos = batch_rewrite_pos.permute(1, 0)
+        # padded_predicted_rewards = pad_sequence(padded_predicted_rewards, batch_first=True, padding_value=-float('inf')).squeeze()
+        # exp_padded_predicted_rewards = torch.exp(padded_predicted_rewards * 10)
+        # if eval_flag:
+        #     batch_rewrite_pos = torch.sort(exp_padded_predicted_rewards, dim=1, descending=True)[1]
+        # else:
+        #     batch_rewrite_pos_dist = Categorical(exp_padded_predicted_rewards.squeeze())
+        #     batch_rewrite_pos = batch_rewrite_pos_dist.sample(sample_shape=[self.num_sample_rewrite_pos])
+        #     batch_rewrite_pos = batch_rewrite_pos.permute(1, 0)
             
         for i in range(len(dm_list)):
             if not eval_flag:
-                sample_rewrite_pos = torch.unique(batch_rewrite_pos[i], sorted=False).flip(dims=[0])
+                rewrite_pos_dist = Categorical(torch.exp(batch_predicted_rewards[i].squeeze() * 10))
+                rewrite_pos = rewrite_pos_dist.sample(sample_shape=[lengths[i]])
+                sample_rewrite_pos = torch.unique(rewrite_pos, sorted=False).flip(dims=[0])
             else:
-                sample_rewrite_pos = batch_rewrite_pos[i]
-            cur_candidate_dm, cur_candidate_rewrite_rec = self.rewrite(dm_list[i], trace_rec[i], padded_predicted_rewards[i], sample_rewrite_pos, eval_flag, max_search_pos, reward_thres)
+                sample_rewrite_pos = torch.sort(torch.exp(batch_predicted_rewards[i].squeeze() * 10), descending=True)[1]
+            cur_candidate_dm, cur_candidate_rewrite_rec = self.rewrite(dm_list[i], trace_rec[i], batch_predicted_rewards[i], sample_rewrite_pos, eval_flag, max_search_pos, reward_thres)
             candidate_dm.append(cur_candidate_dm)
             candidate_rewrite_rec.append(cur_candidate_rewrite_rec)
         return candidate_dm, candidate_rewrite_rec
 
 
     def forward(self, batch_data, eval_flag=False):
-        eval_flag = False
         torch.set_grad_enabled(not eval_flag)
         batch_size = len(batch_data)
         dm_list, encoder_output = self.input_encoder.calc_embedding(batch_data, eval_flag)
@@ -250,7 +251,7 @@ class vrpModel(BaseModel):
         if len(pred_value_rec) > 0:
             pred_value_rec = torch.stack(pred_value_rec, 0)
             value_target_rec = torch.cat(value_target_rec, 0)
-            pred_value_rec = pred_value_rec.unsqueeze(1)
+            # pred_value_rec = pred_value_rec.unsqueeze(1)
             value_target_rec = value_target_rec.unsqueeze(1)
             total_value_loss = F.smooth_l1_loss(pred_value_rec, value_target_rec, reduction='sum')
         total_policy_loss /= batch_size
