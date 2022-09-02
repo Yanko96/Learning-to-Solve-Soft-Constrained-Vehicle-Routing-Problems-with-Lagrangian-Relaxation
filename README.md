@@ -1,12 +1,3 @@
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      processEscapes: true
-    }
-  });
-</script>
-<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 # Learning to Solve Soft-Constrained Vehicle Routing Problems with Lagrangian Relaxation
 
 This Repository provides unofficial source code for the paper Learning to Solve Soft-Constrained Vehicle Routing Problems with Lagrangian Relaxation. Unfortuntely, it's just an unofficial implementation and due to the lack of GPUs (at least now), I'm not able to verify it thoroughly. However, please be assured that this repository is fully able to represent the basic idea of our paper. 
@@ -18,14 +9,8 @@ Paper [[PDF](https://arxiv.org/pdf/2207.09860)]
 ## Trajectory Shaping
 We improve the model performance by intervening the trajectory generation process to boost the quality of the agent’s training information. The motivation is similar to modifying the expression of return. Due to the large search space and the sparsity of optima, guiding the agent to explore and learn the ’good’ actions can be very slow or easily trapped into local optima, especially if the initial state solution is far from the true global optimum. With the underlying model being deterministic and we can easily obtain the next state's reward and cost, we suggest a post-action rejection rule deciding whether to reject the candidate solution respectively when non-improved and improved solutions are found to modify the generated trajectories.
  
-$
-    P(\textnormal{Reject}) = \left\{
-        \begin{array}{ll}
-            \phi & \quad \textnormal{if improved} \\
-            1 - \phi & \quad \textnormal{if not improved},
-        \end{array}
-    \right.
-$
+<img src="https://latex.codecogs.com/svg.image?&space;&space;&space;&space;P(\textnormal{Reject})&space;=&space;\left\{&space;&space;&space;&space;&space;&space;&space;&space;\begin{array}{ll}&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;\phi&space;&&space;\quad&space;\textnormal{if&space;improved}&space;\\&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;&space;1&space;-&space;\phi&space;&&space;\quad&space;\textnormal{if&space;not&space;improved},&space;&space;&space;&space;&space;&space;&space;&space;\end{array}&space;&space;&space;&space;\right." title="https://latex.codecogs.com/svg.image? P(\textnormal{Reject}) = \left\{ \begin{array}{ll} \phi & \quad \textnormal{if improved} \\ 1 - \phi & \quad \textnormal{if not improved}, \end{array} \right." />
+
 <div align=center><img src="figs\tc_not_tc.png" width="800"></div>
 
 ## Modified Return 
