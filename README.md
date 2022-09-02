@@ -1,3 +1,12 @@
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 # Learning to Solve Soft-Constrained Vehicle Routing Problems with Lagrangian Relaxation
 
 This Repository provides unofficial source code for the paper Learning to Solve Soft-Constrained Vehicle Routing Problems with Lagrangian Relaxation. Unfortuntely, it's just an unofficial implementation and due to the lack of GPUs (at least now), I'm not able to verify it thoroughly. However, please be assured that this repository is fully able to represent the basic idea of our paper. 
@@ -26,7 +35,7 @@ The expression of $G_{t}$ is specially designed to encourage better performance 
 
 ## Performance 
 We observed slightly better performance than Google OR-Tools and close performance to LKH-3. 
-<div align=center><img src="figs\perf.png" width="800"></div>
+<div align=center><img src="figs\perf.PNG" width="800"></div>
 
 ## Concerns on the dataset
 Although generation of VRP/CVRP datasets is pretty intuitive, VRPTW datasets are tricky to deal with. In our implementation we generate first a CVRP scenario and then a CVRP solution by heuristics. Time windows are then generated according to arrival time in the CVRP solution to make sure that there is at least one valid sulution. However, we believe that there are better ways to generate VRPTW/CVRPTW datsaets. 
