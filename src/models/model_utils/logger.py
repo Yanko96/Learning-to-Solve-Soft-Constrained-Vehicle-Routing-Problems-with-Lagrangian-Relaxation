@@ -14,11 +14,11 @@ class Logger(object):
 	"""
 	def __init__(self, args):
 		self.log_interval = args.log_interval
-		self.log_name = "../logs/" + args.log_name
+		self.log_name = os.path.join(args.model_dir, args.log_name)
 		self.best_reward = 0
 		self.records = []
-		if not os.path.exists("../logs/"):
-			os.makedirs("../logs/")
+		if not os.path.exists(args.model_dir):
+			os.makedirs(args.model_dir)
 
 
 	def write_summary(self, summary):

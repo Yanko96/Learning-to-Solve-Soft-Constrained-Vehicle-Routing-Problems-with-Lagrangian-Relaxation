@@ -7,7 +7,7 @@ import pickle
 import random
 import sys
 import time
-from multiprocessing import Pool, parent_process
+from multiprocessing import Pool
 
 import numpy as np
 import six
