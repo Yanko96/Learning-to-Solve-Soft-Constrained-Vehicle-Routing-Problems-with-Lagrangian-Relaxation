@@ -65,7 +65,7 @@ def train(args):
             print('train loss: %.3f avg cost: %.3f avg distance: %.3f avg penalty: %.3f run avg cost: %.3f run avg distance: %.3f run avg penalty: %.3f'% (train_loss, avg_cost, avg_dist, avg_penalty, running_mean_cost, running_mean_dist, running_mean_penalty))
 
             if model_supervisor.global_step % args.eval_every_n == 0:
-                eval_loss, (eval_avg_cost, eval_avg_dist, eval_avg_penalty) = model_supervisor.eval(eval_dataloader, args.output_trace_flag, args.max_eval_size)
+                eval_loss, (eval_avg_cost, eval_avg_dist, eval_avg_penalty) = model_supervisor.eval(eval_dataloader)
                 val_summary = {'eval_avg_cost': eval_avg_cost, 'eval_avg_dist': eval_avg_dist, 'eval_avg_penalty': eval_avg_penalty, 'global_step': model_supervisor.global_step}
                 logger.write_summary(val_summary)
                 model_supervisor.save_model()
@@ -85,7 +85,7 @@ def evaluate(args):
     args.dropout_rate = 0.0
 
     model_supervisor = create_model(args)
-    test_loss, (test_avg_cost, test_avg_dist, test_avg_penalty) = model_supervisor.eval(test_dataloader, args.output_trace_flag)
+    test_loss, (test_avg_cost, test_avg_dist, test_avg_penalty) = model_supervisor.eval(test_dataloader)
 
 
     print('test loss: %.4f test cost: %.4f test distance: %.4f test penalty: %.4f' % (test_loss, test_avg_cost, test_avg_dist, test_avg_penalty))
