@@ -163,7 +163,7 @@ class vrptwSupervisor(Supervisor):
         cum_penalty = 0
         for batch_idx, samples in enumerate(dataloader):
             print("Evaluating, Batch {}".format(batch_idx))
-            eval_loss, (avg_cost, avg_dist, avg_penalty) = self.model(samples, eval_flag=True)
+            eval_loss, (avg_cost, avg_dist, avg_penalty), dm_rec = self.model(samples, eval_flag=True)
             print('Valiation loss: %.4f avg cost: %.4f avg distance: %.4f avg penalty: %.4f' % (eval_loss, avg_cost, avg_dist, avg_penalty))
             data_size += len(samples)
             cum_loss += eval_loss.item() * len(samples)
