@@ -39,7 +39,7 @@ def train(args):
     train_data_size = len(train_data)
 
     eval_data = data_utils.vrptwDataset(args.val_dataset, True)
-    eval_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=False, collate_fn=data_utils.collate_fn)
+    eval_dataloader = DataLoader(eval_data, batch_size=args.batch_size, shuffle=False, collate_fn=data_utils.collate_fn)
 
     model_supervisor = create_model(args)
 
