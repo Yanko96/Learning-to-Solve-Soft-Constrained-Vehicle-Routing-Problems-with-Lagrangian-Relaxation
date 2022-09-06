@@ -6,6 +6,13 @@ This Repository provides unofficial source code for the paper Learning to Solve 
 
 Paper [[PDF](https://arxiv.org/pdf/2207.09860)] 
 
+## Usage
+The code includes the implementation of following approaches:
+
+* Generate dataset: run ``data_generator/vrpDatagen.py`` for CVRP and run ``data_generator/vrptwDatagen.py`` for CVRPTW.
+* CVRP: run ``src/run_vrp.py``.
+* CVRPTW: run ``src/run_vrptw.py``.
+
 ## Trajectory Shaping
 We improve the model performance by intervening the trajectory generation process to boost the quality of the agent’s training information. The motivation is similar to modifying the expression of return. Due to the large search space and the sparsity of optima, guiding the agent to explore and learn the ’good’ actions can be very slow or easily trapped into local optima, especially if the initial state solution is far from the true global optimum. With the underlying model being deterministic and we can easily obtain the next state's reward and cost, we suggest a post-action rejection rule deciding whether to reject the candidate solution respectively when non-improved and improved solutions are found to modify the generated trajectories.
  
